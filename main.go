@@ -14,7 +14,7 @@ func main() {
 	fmt.Println("Hello World")
 	err := godotenv.Load("secret.env", "unsecret.env")
 	if err != nil {
-		log.Println("WARRNING: error while loading all env files: ", err)
+		log.Println("WARNING: error while loading all env files: ", err)
 	}
 
 	
