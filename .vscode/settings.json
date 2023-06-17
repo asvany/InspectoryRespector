@@ -1,6 +1,11 @@
 {
 	"cSpell.words": [
+		"Inspectory",
 		"joho",
-		"oxzi"
+		"oxzi",
+		"protoimpl",
+		"ptypes",
+		"Systray",
+		"timestamppb"
 	]
 }

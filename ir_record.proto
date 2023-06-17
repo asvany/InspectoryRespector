@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package ir_protocol;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "./ir_protocol";
+
+message Event {
+  google.protobuf.Timestamp timestamp = 1;
+  string device_name = 2;
+  uint64 device_id = 3;
+  EventType event_type = 4;
+  oneof event_data {
+    KeyEventData key_event_data = 5;
+    MotionEventData motion_event_data = 6;
+  }
+}
+
+enum EventType {
+  KEY_UP = 0;
+  KEY_DOWN = 1;
+  MOTION = 2;
+  BUTTON_UP = 3;
+  BUTTON_DOWN = 4;
+}
+
+message KeyEventData {
+  int32 key_code = 1;
+}
+
+message MotionEventData {
+  repeated AxisPosition axis_positions = 1;
+}
+
+message AxisPosition {
+  int32 axis = 1;
+  int32 position = 2;
+}
+
+message WindowChange {
+  google.protobuf.Timestamp timestamp = 1;
+  map<string, string> properties = 2;
+  repeated Event events = 3;
+}

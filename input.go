@@ -12,6 +12,15 @@ import (
 	"fmt"
 	"os/exec"
 )
+// TODO alphanumeric characters only encoding
+// TODO protobuf
+// TODO Systray
+// TODO Window focus switch
+// TODO timestamp control
+
+// struct InputEntry(
+// 	Type string
+// )
 
 // xinput-list is a limited reimplementation of `xinput list`.
 func InputList() []xinput.XDeviceInfo {
@@ -97,7 +106,8 @@ func EventLogNG(valid_devices []xinput.XDeviceInfo, stopChan chan os.Signal, wg 
 				select {
 				case event := <-eventMap.Events():
 					if validEvent(event) {
-						fmt.Printf("event: device:%v event.type:%v event.Field:%v event.Axes:%v \n", device.Name, event.Type, event.Field, event.Axes)
+						fmt.Printf("TS:%v event: device:%v device.Id:%v event.type:%v event.Field:%v event.Axes:%v \n",
+						 TimeStamp(),device.Name, device.Id, event.Type, event.Field, event.Axes)
 					}
 				case <-ctx.Done():
 					return
