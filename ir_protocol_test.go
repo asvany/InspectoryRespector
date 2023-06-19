@@ -2,23 +2,22 @@ package main
 
 import (
 	"fmt"
+	"testing"
 	"time"
 
 	"github.com/asvany/InspectoryRespector/ir_protocol"
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func main() {
-	t := time.Now()
-	ts, err := ptypes.TimestampProto(t)
-	if err != nil {
-		fmt.Println("timestamp creation error:", err)
-		return
-	}
+func Test_timestamp(t *testing.T) {
+
+	now := time.Now()
+	ts := timestamppb.New(now)
 
 	message := &ir_protocol.WindowChange{
 		Timestamp: ts,
 	}
 
 	fmt.Println("Message:", message)
+
 }
