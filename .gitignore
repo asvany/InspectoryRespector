@@ -1,3 +1,10 @@
 secret.env
 InspectoryRespector
 a.out
+data
+Tracer.go
+data.bz2
+data.gz
+data.json
+data.json.bz2
+data.json.gz

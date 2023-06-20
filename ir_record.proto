@@ -6,7 +6,7 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "./ir_protocol";
 
-message Event {
+message InputEvent {
   google.protobuf.Timestamp timestamp = 1;
   string device_name = 2;
   uint64 device_id = 3;
@@ -18,9 +18,9 @@ message Event {
 }
 
 enum EventType {
-  KEY_UP = 0;
-  KEY_DOWN = 1;
-  MOTION = 2;
+  MOTION = 0;
+  KEY_UP = 1;
+  KEY_DOWN = 2;  
   BUTTON_UP = 3;
   BUTTON_DOWN = 4;
 }
@@ -41,5 +41,5 @@ message AxisPosition {
 message WindowChange {
   google.protobuf.Timestamp timestamp = 1;
   map<string, string> properties = 2;
-  repeated Event events = 3;
+  repeated InputEvent events = 3;
 }

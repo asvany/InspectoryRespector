@@ -1,3 +1,7 @@
+github.com/asvany/ChannelWithConcurrentSenders v1.0.0 h1:43AqYgXpL7pbV1PYvGgU+OYaq1AeIqIcyWy1l3C8wSk=
+github.com/asvany/ChannelWithConcurrentSenders v1.0.0/go.mod h1:uO7GzPlyAc2c36wropmY4Gp9osWHsSg9uoQz6CRkaYU=
+github.com/asvany/ChannelWithConcurrentSenders v1.0.2 h1:i3U+DRQXbEq8imIf+CdzdS3I/QyNsLYhJQqZyUGyTb8=
+github.com/asvany/ChannelWithConcurrentSenders v1.0.2/go.mod h1:uO7GzPlyAc2c36wropmY4Gp9osWHsSg9uoQz6CRkaYU=
 github.com/geistesk/go-xinput v0.1.0 h1:YXzzQwFXLBUa2ChHB788ROLIXM9/XMdICwkVnDuURRk=
 github.com/geistesk/go-xinput v0.1.0/go.mod h1:715GNWMyhFcymTPonWBuSgfpcbnIzT+OUSkToBzfLAk=
 github.com/golang/protobuf v1.5.0/go.mod h1:FsONVRAS9T7sI+LIUmWTfcYkHO4aIWwzhcaSAoJOfIk=

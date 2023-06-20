@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -18,6 +17,6 @@ func Test_timestamp(t *testing.T) {
 		Timestamp: ts,
 	}
 
-	fmt.Println("Message:", message)
+	t.Log("Message:", message)
 
 }
