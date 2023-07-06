@@ -6,40 +6,55 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "./ir_protocol";
 
-message InputEvent {
+message KeyEvent {
   google.protobuf.Timestamp timestamp = 1;
-  string device_name = 2;
-  uint64 device_id = 3;
-  EventType event_type = 4;
-  oneof event_data {
-    KeyEventData key_event_data = 5;
-    MotionEventData motion_event_data = 6;
-  }
+  bool is_down = 2;
+  uint32 key_code = 3;
 }
+
+message MotionEvent {
+  google.protobuf.Timestamp timestamp = 1;
+  map<uint32,int32> axis_positions = 2;
+}
+
+message ButtonEvent {
+  google.protobuf.Timestamp timestamp = 1;
+    bool is_down = 2;
+  uint32 button_code = 3;
+
+
+}
+
+message DeviceEvents {
+  string device_name = 1;
+  repeated KeyEvent key_events = 2;
+  repeated MotionEvent motion_events = 3;
+  repeated ButtonEvent button_events = 4;
+}
+
 
 enum EventType {
   MOTION = 0;
-  KEY_UP = 1;
-  KEY_DOWN = 2;  
+  KEY_UP = 5;
+  KEY_DOWN = 4; 
   BUTTON_UP = 3;
-  BUTTON_DOWN = 4;
+  BUTTON_DOWN = 2;
 }
 
-message KeyEventData {
-  int32 key_code = 1;
-}
 
-message MotionEventData {
-  repeated AxisPosition axis_positions = 1;
-}
+// message InputEvent {
+//   google.protobuf.Timestamp timestamp = 1;
+//   DeviceInfo device_info = 2;
+//   oneof events {
+//     KeyEventData key_event = 3;
+//     MotionEventData motion_event = 4;
+//     ButtonEventData button_event = 5;
+//   }
+// }
 
-message AxisPosition {
-  int32 axis = 1;
-  int32 position = 2;
-}
 
 message WindowChange {
   google.protobuf.Timestamp timestamp = 1;
   map<string, string> properties = 2;
-  repeated InputEvent events = 3;
+  map<uint64,DeviceEvents> events = 3;
 }

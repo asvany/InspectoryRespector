@@ -14,8 +14,7 @@ import (
 	"fmt"
 	"os/exec"
 	"time"
-
-	"google.golang.org/protobuf/types/known/timestamppb"
+	// "google.golang.org/protobuf/types/known/timestamppb"
 	// "github.com/asvany/InspectoryRespector/ir_protocol"
 )
 
@@ -26,10 +25,62 @@ import (
 // TODO timestamp control
 
 // struct InputEntry(
-// 	Type string
+//
+//	Type string
+//
 // )
+type InputEventData struct {
+	timestamp  time.Time
+	DeviceId   uint64
+	DeviceName string
+	EventType  ir_protocol.EventType
+}
 
-type InputEventsChannelType = cc.ChannelWithConcurrentSenders[*ir_protocol.InputEvent]
+type ButtonEventData struct {
+	InputEventData
+	Button int
+}
+
+type KeyEventData struct {
+	InputEventData
+	KeyCode uint
+}
+
+type InputEvent interface {
+	String() string
+	GetDeviceId() uint64
+	GetDeviceName() string
+}
+
+func (e *InputEventData) GetDeviceId() uint64 {
+	return e.DeviceId
+}
+func (e *InputEventData) GetDeviceName() string {
+	return e.DeviceName
+}
+
+type MotionEvent struct {
+	InputEventData
+	AxisPosition map[uint32]int32
+}
+
+func (e *InputEventData) String() string {
+	return fmt.Sprintf("InputEvent: %v %v %v %v", e.timestamp, e.DeviceId, e.DeviceName, e.EventType)
+}
+
+func (e *ButtonEventData) String() string {
+	return fmt.Sprintf("ButtonEvent: %v %v %v %v %v", e.timestamp, e.DeviceId, e.DeviceName, e.EventType, e.Button)
+}
+
+func (e *KeyEventData) String() string {
+	return fmt.Sprintf("KeyEvent: %v %v %v %v %v", e.timestamp, e.DeviceId, e.DeviceName, e.EventType, e.KeyCode)
+}
+
+func (e *MotionEvent) String() string {
+	return fmt.Sprintf("MotionEvent: %v %v %v %v %v", e.timestamp, e.DeviceId, e.DeviceName, e.EventType, e.AxisPosition)
+}
+
+type InputEventsChannelType = cc.ChannelWithConcurrentSenders[InputEvent]
 
 // xinput-list is a limited reimplementation of `xinput list`.
 func InputList() []xinput.XDeviceInfo {
@@ -124,28 +175,26 @@ func EventLogNG(valid_devices []xinput.XDeviceInfo, stopChan chan os.Signal, wg 
 							xinput.MotionEvent:        ir_protocol.EventType_MOTION,
 						}
 
-						out_event := &ir_protocol.InputEvent{
-							Timestamp:  timestamppb.New(time.Now()), // Current time
+						out_event := &InputEventData{
+							timestamp:  time.Now(),
 							DeviceName: device.Name,
 							DeviceId:   device.Id,
 							EventType:  event_type_mapping[event.Type],
 						}
 
 						if event.Type == xinput.MotionEvent {
-							motion_event := ir_protocol.MotionEventData{AxisPositions: []*ir_protocol.AxisPosition{}}
+							out_event := &MotionEvent{InputEventData: *out_event}
+
 							for axis, position := range event.Axes {
-								motion_event.AxisPositions = append(motion_event.AxisPositions, &ir_protocol.AxisPosition{
-									Axis:     int32(axis),
-									Position: int32(position),
-								})
+								out_event.AxisPosition[uint32(axis)] = int32(position)
 
 							}
-							out_event.EventData = &ir_protocol.InputEvent_MotionEventData{MotionEventData: &motion_event}
 
-						} else {
-							key_event := ir_protocol.KeyEventData{KeyCode: int32(event.Field)}
+						} else if event.Type == xinput.KeyPressEvent || event.Type == xinput.KeyReleaseEvent {
+							out_event := &KeyEventData{InputEventData: *out_event}
 
-							out_event.EventData = &ir_protocol.InputEvent_KeyEventData{KeyEventData: &key_event}
+							out_event.KeyCode = event.Field
+
 						}
 						fmt.Printf("TS:%v event: device:%v device.Id:%v event.type:%v event.Field:%v event.Axes:%v \n",
 							0, device.Name, device.Id, event.Type, event.Field, event.Axes)

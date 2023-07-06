@@ -30,7 +30,42 @@ type InputEventCollector struct {
 func (c *InputEventCollector) processInputEvents(input_events InputEventsChannelType) {
 	for event := range input_events.ROChannel() {
 		fmt.Println("Event:", event.String())
-		c.window.Events = append(c.window.Events, event)
+		//switch by event type
+		dev, ok := c.window.Events[event.GetDeviceId()]
+		if !ok {
+			dev = &ir_protocol.DeviceEvents{DeviceName: event.GetDeviceName()}
+			c.window.Events[event.GetDeviceId()] = dev
+		}
+		var event interface{} = &ButtonEventData{InputEventData: InputEventData{DeviceId: 1, DeviceName: "Device1", EventType: 1, timestamp: time.Now()}, Button: 2}
+
+		switch v := event.(type) {
+		case *ButtonEventData:
+			fmt.Printf("ButtonEvent with button: %d\n", v.Button)
+			dev.ButtonEvents = append(dev.ButtonEvents, &ir_protocol.ButtonEvent{
+				Timestamp:  timestamppb.New(v.timestamp),
+				ButtonCode: uint32(v.Button),
+				IsDown:     v.EventType&1 == 0,
+			})
+		case *KeyEventData:
+			fmt.Printf("KeyEvent with keycode: %d\n", v.KeyCode)
+			dev.KeyEvents = append(dev.KeyEvents, &ir_protocol.KeyEvent{
+				Timestamp: timestamppb.New(v.timestamp),
+				KeyCode:   uint32(v.KeyCode),
+				IsDown:    v.EventType&1 == 0,
+			})
+		case *MotionEvent:
+			fmt.Printf("MotionEvent with axis position: %v\n", v.AxisPosition)
+			motion_event := &ir_protocol.MotionEvent{
+				Timestamp: timestamppb.New(v.timestamp),
+			}
+			for axis,position := range v.AxisPosition {
+				motion_event.AxisPositions[axis] = position
+			}
+			dev.MotionEvents = append(dev.MotionEvents, motion_event)
+
+		default:
+			fmt.Printf("Unknown event type: %T\n", v)
+		}
 	}
 
 }
@@ -67,14 +102,15 @@ func (c *InputEventCollector) WriteToFile() error {
 // this is the main file and this is the start function of the application
 func main() {
 	var wg sync.WaitGroup
-	input_events := cc.NewChannelWithConcurrentSenders[*ir_protocol.InputEvent](10)
+	input_events := cc.NewChannelWithConcurrentSenders[InputEvent](10)
+	// input_events := InputEventsChannelType(10)
 
 	InputEventCollector := &InputEventCollector{
 		// create WindowChange struct with an empty event list
 		window: ir_protocol.WindowChange{
 			Timestamp: timestamppb.New(time.Now()),
 
-			Events: []*ir_protocol.InputEvent{},
+			Events: make(map[uint64]*ir_protocol.DeviceEvents),
 		},
 	}
 
