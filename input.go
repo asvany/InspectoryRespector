@@ -38,7 +38,7 @@ type InputEventData struct {
 
 type ButtonEventData struct {
 	InputEventData
-	Button int
+	Button uint
 }
 
 type KeyEventData struct {
@@ -174,8 +174,8 @@ func EventLogNG(valid_devices []xinput.XDeviceInfo, stopChan chan os.Signal, wg 
 							xinput.KeyReleaseEvent:    ir_protocol.EventType_KEY_UP,
 							xinput.MotionEvent:        ir_protocol.EventType_MOTION,
 						}
-
-						out_event := &InputEventData{
+						var out_event InputEvent
+						event_common_data := InputEventData{
 							timestamp:  time.Now(),
 							DeviceName: device.Name,
 							DeviceId:   device.Id,
@@ -183,18 +183,23 @@ func EventLogNG(valid_devices []xinput.XDeviceInfo, stopChan chan os.Signal, wg 
 						}
 
 						if event.Type == xinput.MotionEvent {
-							out_event := &MotionEvent{InputEventData: *out_event}
+							out_event = &MotionEvent{InputEventData: event_common_data, AxisPosition: map[uint32]int32{}}
 
 							for axis, position := range event.Axes {
-								out_event.AxisPosition[uint32(axis)] = int32(position)
+								out_event.(*MotionEvent).AxisPosition[uint32(axis)] = int32(position)
 
 							}
 
 						} else if event.Type == xinput.KeyPressEvent || event.Type == xinput.KeyReleaseEvent {
-							out_event := &KeyEventData{InputEventData: *out_event}
+							out_event = &KeyEventData{InputEventData: event_common_data,
+								KeyCode: event.Field}
 
-							out_event.KeyCode = event.Field
+						} else if event.Type == xinput.ButtonPressEvent || event.Type == xinput.ButtonReleaseEvent {
+							out_event = &ButtonEventData{InputEventData: event_common_data,
+								Button: event.Field}
 
+						} else {
+							fmt.Printf("Unknown event type: %v\n", event.Type)
 						}
 						fmt.Printf("TS:%v event: device:%v device.Id:%v event.type:%v event.Field:%v event.Axes:%v \n",
 							0, device.Name, device.Id, event.Type, event.Field, event.Axes)

@@ -33,10 +33,12 @@ func (c *InputEventCollector) processInputEvents(input_events InputEventsChannel
 		//switch by event type
 		dev, ok := c.window.Events[event.GetDeviceId()]
 		if !ok {
-			dev = &ir_protocol.DeviceEvents{DeviceName: event.GetDeviceName()}
+			dev = &ir_protocol.DeviceEvents{
+				DeviceName: event.GetDeviceName(),
+			}
 			c.window.Events[event.GetDeviceId()] = dev
 		}
-		var event interface{} = &ButtonEventData{InputEventData: InputEventData{DeviceId: 1, DeviceName: "Device1", EventType: 1, timestamp: time.Now()}, Button: 2}
+		// var event interface{} = &ButtonEventData{InputEventData: InputEventData{DeviceId: 1, DeviceName: "Device1", EventType: 1, timestamp: time.Now()}, Button: 2}
 
 		switch v := event.(type) {
 		case *ButtonEventData:
@@ -56,9 +58,10 @@ func (c *InputEventCollector) processInputEvents(input_events InputEventsChannel
 		case *MotionEvent:
 			fmt.Printf("MotionEvent with axis position: %v\n", v.AxisPosition)
 			motion_event := &ir_protocol.MotionEvent{
-				Timestamp: timestamppb.New(v.timestamp),
+				Timestamp:     timestamppb.New(v.timestamp),
+				AxisPositions: make(map[uint32]int32),
 			}
-			for axis,position := range v.AxisPosition {
+			for axis, position := range v.AxisPosition {
 				motion_event.AxisPositions[axis] = position
 			}
 			dev.MotionEvents = append(dev.MotionEvents, motion_event)
