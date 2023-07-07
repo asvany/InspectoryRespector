@@ -4,10 +4,10 @@ import (
 	"context"
 	"sync"
 
-	// "github.com/geistesk/go-xinput"
+	// "github.com/oxzi/go-xinput"
 	"github.com/asvany/ChannelWithConcurrentSenders/cc"
 	"github.com/asvany/InspectoryRespector/ir_protocol"
-	"github.com/geistesk/go-xinput"
+	"github.com/oxzi/go-xinput"
 
 	"os"
 
