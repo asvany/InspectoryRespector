@@ -4,7 +4,7 @@
 
 package main
 
-// go:generate protoc --go_out=. ir_record.proto
+//go:generate protoc --go_out=. ir_record.proto
 
 import (
 	"fmt"
@@ -116,6 +116,13 @@ func (c *InputEventCollector) WriteToFile() error {
 // this is the main file and this is the start function of the application
 func main() {
 
+	hostname, err := os.Hostname()
+	if err != nil {
+		fmt.Printf("Error retrieving hostname: %v\n", err)
+	} else {
+		fmt.Println("Hostname:", hostname)
+	}
+
 	loc_chan := make(chan *ir_protocol.Location)
 
 	ticker := time.NewTicker(100 * time.Second)
@@ -137,13 +144,13 @@ func main() {
 		// create WindowChange struct with an empty event list
 		window: ir_protocol.WindowChange{
 			Timestamp: timestamppb.New(time.Now()),
-
-			Events: make(map[uint64]*ir_protocol.DeviceEvents),
+			Events:    make(map[uint64]*ir_protocol.DeviceEvents),
+			Hostname:  hostname,
 		},
 	}
 
 	fmt.Println("Hello World")
-	err := godotenv.Load("secret.env", "unsecret.env")
+	err = godotenv.Load("secret.env", "unsecret.env")
 	if err != nil {
 		log.Println("WARNING: error while loading all env files: ", err)
 	}

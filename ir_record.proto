@@ -70,4 +70,5 @@ message WindowChange {
   map<string, string> properties = 2;
   map<uint64,DeviceEvents> events = 3;
   Location location = 4;
+  string Hostname = 5;
 }
