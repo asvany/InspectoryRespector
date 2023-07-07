@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/asvany/InspectoryRespector/geo"
+
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
@@ -104,6 +106,11 @@ func (c *InputEventCollector) WriteToFile() error {
 
 // this is the main file and this is the start function of the application
 func main() {
+
+	var loc  geo.Location
+	geo.GetLocation(&loc)
+
+
 	var wg sync.WaitGroup
 	input_events := cc.NewChannelWithConcurrentSenders[InputEvent](10)
 	// input_events := InputEventsChannelType(10)
