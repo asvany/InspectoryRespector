@@ -4,6 +4,8 @@
 
 package main
 
+// go:generate protoc --go_out=. ir_record.proto
+
 import (
 	"fmt"
 	"log"
