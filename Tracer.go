@@ -29,6 +29,13 @@ type InputEventCollector struct {
 	window ir_protocol.WindowChange
 }
 
+func (c *InputEventCollector) processLocation(loc_chan chan *ir_protocol.Location) {
+	for loc := range loc_chan {
+		fmt.Println("New Location:", loc.String())
+		c.window.Location = loc
+	}
+}
+
 func (c *InputEventCollector) processInputEvents(input_events InputEventsChannelType) {
 	for event := range input_events.ROChannel() {
 		fmt.Println("Event:", event.String())
@@ -107,9 +114,18 @@ func (c *InputEventCollector) WriteToFile() error {
 // this is the main file and this is the start function of the application
 func main() {
 
-	var loc  geo.Location
-	geo.GetLocation(&loc)
+	loc_chan := make(chan *ir_protocol.Location)
 
+	ticker := time.NewTicker(100 * time.Second)
+
+	go func() {
+		go geo.GetLocation(loc_chan)
+		for range ticker.C {
+			fmt.Println("Function runs every 100 seconds")
+			go geo.GetLocation(loc_chan)
+			// Add your code here that you want to run
+		}
+	}()
 
 	var wg sync.WaitGroup
 	input_events := cc.NewChannelWithConcurrentSenders[InputEvent](10)
@@ -136,6 +152,7 @@ func main() {
 
 	//InputList()
 	go InputEventCollector.processInputEvents(input_events)
+	go InputEventCollector.processLocation(loc_chan)
 
 	SetupInput(stopChan, &wg, input_events)
 

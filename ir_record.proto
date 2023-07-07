@@ -69,4 +69,5 @@ message WindowChange {
   google.protobuf.Timestamp timestamp = 1;
   map<string, string> properties = 2;
   map<uint64,DeviceEvents> events = 3;
+  Location location = 4;
 }
