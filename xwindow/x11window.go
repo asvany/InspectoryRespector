@@ -1,8 +1,9 @@
 package xwindow
 
 import (
+	"encoding/binary"
 	"fmt"
-	"strings"
+	"os"
 
 	// "time"
 
@@ -11,11 +12,11 @@ import (
 )
 
 type XInfo struct {
-	conn           *xgb.Conn
-	screen         xproto.ScreenInfo
-	rootWin        xproto.Window
-	desktopVP      xproto.Atom
-	utf8StringAtom xproto.Atom
+	conn              *xgb.Conn
+	screen            xproto.ScreenInfo
+	rootWin           xproto.Window
+	desktopVP         xproto.Atom
+	utf8StringAtom    xproto.Atom
 	propertyWhitelist map[string]struct{}
 }
 
@@ -38,24 +39,24 @@ func NewXInfo() (*XInfo, error) {
 	}
 
 	propertyWhitelist := map[string]struct{}{
-		"WM_NAME":          {},
-		"WM_CLASS":         {},
+		"WM_NAME":  {},
+		"WM_CLASS": {},
 		// "WM_CLIENT_MACHINE": {},
-		"_NET_WM_NAME":     {},
-		"_NET_DESKTOP_VIEWPORT":{},
-		"_NET_WORKAREA": {},
+		"_NET_WM_NAME":          {},
+		"_NET_DESKTOP_VIEWPORT": {},
+		"_NET_WORKAREA":         {},
 		// "_NET_WM_PID":      {},
-		"_NET_WM_DESKTOP":  {},
+		"_NET_WM_DESKTOP": {},
 		// "_NET_WM_STATE":    {},
-		"WM_WINDOW_ROLE":{},
+		"WM_WINDOW_ROLE": {},
 	}
 
 	return &XInfo{
-		conn:           conn,
-		screen:         *screen,
-		rootWin:        rootWin,
-		desktopVP:      desktopVP.Atom,
-		utf8StringAtom: utf8StringAtom.Atom,
+		conn:              conn,
+		screen:            *screen,
+		rootWin:           rootWin,
+		desktopVP:         desktopVP.Atom,
+		utf8StringAtom:    utf8StringAtom.Atom,
 		propertyWhitelist: propertyWhitelist,
 	}, nil
 }
@@ -90,30 +91,26 @@ func (xi *XInfo) getViewPort() (string, error) {
 	return fmt.Sprintf("WM_VIEWPORT_%d", (x/1920)+(y/1200)*4), nil
 }
 
-
-
-func (xi *XInfo) getActiveWindata() (string, error) {
+func (xi *XInfo) getActiveWindata(propValues * map[string]string) error {
 	atomActiveWindow, _ := xproto.InternAtom(xi.conn, false, uint16(len("_NET_ACTIVE_WINDOW")), "_NET_ACTIVE_WINDOW").Reply()
 	activeWindowProp, err := xproto.GetProperty(xi.conn, false, xi.rootWin, atomActiveWindow.Atom, xproto.GetPropertyTypeAny, 0, (1<<32)-1).Reply()
 
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	activeWindowID := xproto.Window(xgb.Get32(activeWindowProp.Value))
 
 	props, err := xproto.ListProperties(xi.conn, activeWindowID).Reply()
 	if err != nil {
-		// handle error
+		return err
 	}
 
-	propValues := make(map[string]string)
-
 	for _, atom := range props.Atoms {
-		
+
 		nameReply, err := xproto.GetAtomName(xi.conn, atom).Reply()
 		if err != nil {
-			// handle error
+			return err
 		}
 		if _, ok := xi.propertyWhitelist[nameReply.Name]; !ok {
 			continue
@@ -121,59 +118,86 @@ func (xi *XInfo) getActiveWindata() (string, error) {
 
 		valueReply, err := xproto.GetProperty(xi.conn, false, activeWindowID, atom, xproto.GetPropertyTypeAny, 0, (1<<32)-1).Reply()
 		if err != nil {
-			// handle error
+			return err
 		}
 
-		propValues[nameReply.Name] = string(valueReply.Value)
+		(*propValues)[nameReply.Name] = string(valueReply.Value)
 	}
 
-	reply, err := xi.CheckStringReply(xproto.GetProperty(xi.conn, false, activeWindowID, xproto.AtomWmClass, xproto.GetPropertyTypeAny, 0, (1<<32)-1).Reply())
+	pid, err := xi.getPIDForWindow(activeWindowID)
 	if err != nil {
-		return "", err
-
+		return err
 	}
 
-	cls :=string(reply.Value)
-	
+	(*propValues)["_NET_WM_PID"] = fmt.Sprintf("%d", pid)
 
-	reply, err = xi.CheckStringReply(xproto.GetProperty(xi.conn, false, activeWindowID, xproto.AtomWmName, xproto.GetPropertyTypeAny, 0, (1<<32)-1).Reply())
-	if err != nil {
-		return "", err
+	getPIDInfoProps(pid, propValues)
 
-	}
-
-	name := string(reply.Value)
-
-	var builder strings.Builder
-
-	if cls != "" {
-		builder.WriteString("WMCLASS_")
-		builder.WriteString(cls)
-		builder.WriteRune(' ')
-	} else {
-		builder.WriteString("CLS_NONE")
-	}
-
-	builder.WriteString(name)
-
-	return builder.String(), nil
+	return nil
 }
 
-func (xi *XInfo) getFullKey() (string, error) {
-	var builder strings.Builder
+func getPIDInfoProps(pid uint32, propValues * map[string]string) error {
+
+	//get the name of the process
+
+	cmdline, err := os.ReadFile(fmt.Sprintf("/proc/%d/cmdline", pid))
+	if err != nil {
+		return err
+	}
+
+	(*propValues)["cmdline"] = string(cmdline)
+
+	// read the value of the process's cwd symlink
+	cwd, err := os.Readlink(fmt.Sprintf("/proc/%d/cwd", pid))
+	if err != nil {
+		return err
+	}
+	(*propValues)["cwd"] = cwd
+
+	//get the exe of the process
+	exe, err := os.Readlink(fmt.Sprintf("/proc/%d/exe", pid))
+	if err != nil {
+		return err
+	}
+	(*propValues)["exe"] = exe
+
+	return nil
+}
+
+func (xi *XInfo) getPIDForWindow(window xproto.Window) (uint32, error) {
+	atom, err := xproto.InternAtom(xi.conn, false, uint16(len("_NET_WM_PID")), "_NET_WM_PID").Reply()
+	if err != nil {
+		return 0, err
+	}
+
+	//get the pid of the window
+	reply, err := xproto.GetProperty(xi.conn, false, window, atom.Atom, xproto.GetPropertyTypeAny, 0, (1<<32)-1).Reply()
+
+	if err != nil {
+		return 0, err
+	}
+
+	if len(reply.Value) < 4 {
+		return 0, fmt.Errorf("invalid _NET_WM_PID property length")
+	}
+
+	return binary.LittleEndian.Uint32(reply.Value), nil
+}
+
+func (xi *XInfo) getFullKey() (*map[string]string, error) {
+
+	propValues := make(map[string]string)
 
 	viewPort, err := xi.getViewPort()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	builder.WriteString(viewPort)
-	builder.WriteRune(' ')
+	propValues["WM_VIEWPORT"] = viewPort
 
-	activeWindata, err := xi.getActiveWindata()
+	err = xi.getActiveWindata(&propValues)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	builder.WriteString(activeWindata)
 
-	return builder.String(), nil
+	return &propValues, nil
 }
