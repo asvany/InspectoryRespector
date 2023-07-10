@@ -2,8 +2,8 @@ package xwindow
 
 import (
 	"fmt"
-	"log"
 	"strings"
+
 	// "time"
 
 	"github.com/BurntSushi/xgb"
@@ -11,10 +11,12 @@ import (
 )
 
 type XInfo struct {
-	conn       *xgb.Conn
-	screen     xproto.ScreenInfo
-	rootWin    xproto.Window
-	desktopVP  xproto.Atom
+	conn           *xgb.Conn
+	screen         xproto.ScreenInfo
+	rootWin        xproto.Window
+	desktopVP      xproto.Atom
+	utf8StringAtom xproto.Atom
+	propertyWhitelist map[string]struct{}
 }
 
 func NewXInfo() (*XInfo, error) {
@@ -30,12 +32,41 @@ func NewXInfo() (*XInfo, error) {
 		return nil, err
 	}
 
+	utf8StringAtom, err := xproto.InternAtom(conn, false, uint16(len("UTF8_STRING")), "UTF8_STRING").Reply()
+	if err != nil {
+		return nil, err
+	}
+
+	propertyWhitelist := map[string]struct{}{
+		"WM_NAME":          {},
+		"WM_CLASS":         {},
+		// "WM_CLIENT_MACHINE": {},
+		"_NET_WM_NAME":     {},
+		"_NET_DESKTOP_VIEWPORT":{},
+		"_NET_WORKAREA": {},
+		// "_NET_WM_PID":      {},
+		"_NET_WM_DESKTOP":  {},
+		// "_NET_WM_STATE":    {},
+		"WM_WINDOW_ROLE":{},
+	}
+
 	return &XInfo{
-		conn:       conn,
-		screen:     screen,
-		rootWin:    rootWin,
-		desktopVP:  desktopVP.Atom,
+		conn:           conn,
+		screen:         *screen,
+		rootWin:        rootWin,
+		desktopVP:      desktopVP.Atom,
+		utf8StringAtom: utf8StringAtom.Atom,
+		propertyWhitelist: propertyWhitelist,
 	}, nil
+}
+func (xi *XInfo) CheckStringReply(reply *xproto.GetPropertyReply, err error) (*xproto.GetPropertyReply, error) {
+	if err != nil {
+		return reply, err
+	}
+	if reply.Format != 8 || reply.Type != xproto.AtomString && reply.Type != xi.utf8StringAtom {
+		return reply, fmt.Errorf("unexpected property format or type")
+	}
+	return reply, err
 }
 
 func (xi *XInfo) getViewPort() (string, error) {
@@ -44,7 +75,7 @@ func (xi *XInfo) getViewPort() (string, error) {
 		return "", err
 	}
 
-	if reply.Format != 32 || reply.Type != xproto.AtomCARDINAL {
+	if reply.Format != 32 || reply.Type != xproto.AtomCardinal {
 		return "", fmt.Errorf("unexpected property format or type")
 	}
 
@@ -59,41 +90,56 @@ func (xi *XInfo) getViewPort() (string, error) {
 	return fmt.Sprintf("WM_VIEWPORT_%d", (x/1920)+(y/1200)*4), nil
 }
 
+
+
 func (xi *XInfo) getActiveWindata() (string, error) {
-	reply, err := xproto.GetProperty(xi.conn, false, xi.rootWin, xproto.AtomWmClass, xproto.GetPropertyTypeAny, 0, (1<<32)-1).Reply()
+	atomActiveWindow, _ := xproto.InternAtom(xi.conn, false, uint16(len("_NET_ACTIVE_WINDOW")), "_NET_ACTIVE_WINDOW").Reply()
+	activeWindowProp, err := xproto.GetProperty(xi.conn, false, xi.rootWin, atomActiveWindow.Atom, xproto.GetPropertyTypeAny, 0, (1<<32)-1).Reply()
+
 	if err != nil {
 		return "", err
 	}
 
-	if reply.Format != 8 || reply.Type != xproto.AtomSTRING {
-		return "", fmt.Errorf("unexpected property format or type")
+	activeWindowID := xproto.Window(xgb.Get32(activeWindowProp.Value))
+
+	props, err := xproto.ListProperties(xi.conn, activeWindowID).Reply()
+	if err != nil {
+		// handle error
 	}
 
-	cls := strings.ToUpper(string(reply.Value))
-	if cls == "" {
-		focus, err := xproto.QueryTree(xi.conn, xi.rootWin).Reply()
+	propValues := make(map[string]string)
+
+	for _, atom := range props.Atoms {
+		
+		nameReply, err := xproto.GetAtomName(xi.conn, atom).Reply()
 		if err != nil {
-			return "", err
+			// handle error
 		}
-		if len(focus.Children) > 0 {
-			focusWindow := focus.Children[0]
-			reply, err := xproto.GetProperty(xi.conn, false, focusWindow, xproto.AtomWmClass, xproto.GetPropertyTypeAny, 0, (1<<32)-1).Reply()
-			if err != nil {
-				return "", err
-			}
-			if reply.Format == 8 && reply.Type == xproto.AtomSTRING {
-				cls = strings.ToUpper(string(reply.Value))
-			}
+		if _, ok := xi.propertyWhitelist[nameReply.Name]; !ok {
+			continue
 		}
+
+		valueReply, err := xproto.GetProperty(xi.conn, false, activeWindowID, atom, xproto.GetPropertyTypeAny, 0, (1<<32)-1).Reply()
+		if err != nil {
+			// handle error
+		}
+
+		propValues[nameReply.Name] = string(valueReply.Value)
 	}
 
-	reply, err = xproto.GetProperty(xi.conn, false, xi.rootWin, xproto.AtomWmName, xproto.GetPropertyTypeAny, 0, (1<<32)-1).Reply()
+	reply, err := xi.CheckStringReply(xproto.GetProperty(xi.conn, false, activeWindowID, xproto.AtomWmClass, xproto.GetPropertyTypeAny, 0, (1<<32)-1).Reply())
 	if err != nil {
 		return "", err
+
 	}
 
-	if reply.Format != 8 || reply.Type != xproto.AtomSTRING {
-		return "", fmt.Errorf("unexpected property format or type")
+	cls :=string(reply.Value)
+	
+
+	reply, err = xi.CheckStringReply(xproto.GetProperty(xi.conn, false, activeWindowID, xproto.AtomWmName, xproto.GetPropertyTypeAny, 0, (1<<32)-1).Reply())
+	if err != nil {
+		return "", err
+
 	}
 
 	name := string(reply.Value)
@@ -130,19 +176,4 @@ func (xi *XInfo) getFullKey() (string, error) {
 	builder.WriteString(activeWindata)
 
 	return builder.String(), nil
-}
-
-func main() {
-	xi, err := NewXInfo()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer xi.conn.Close()
-
-	key, err := xi.getFullKey()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(key)
 }
