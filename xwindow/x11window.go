@@ -10,6 +10,7 @@ import (
 	"github.com/BurntSushi/xgb"
 	"github.com/BurntSushi/xgb/xproto"
 )
+type WinProps map[string]string
 
 type XInfo struct {
 	conn              *xgb.Conn
@@ -91,7 +92,7 @@ func (xi *XInfo) getViewPort() (string, error) {
 	return fmt.Sprintf("WM_VIEWPORT_%d", (x/1920)+(y/1200)*4), nil
 }
 
-func (xi *XInfo) getActiveWindata(propValues * map[string]string) error {
+func (xi *XInfo) getActiveWindowData(propValues * WinProps) error {
 	atomActiveWindow, _ := xproto.InternAtom(xi.conn, false, uint16(len("_NET_ACTIVE_WINDOW")), "_NET_ACTIVE_WINDOW").Reply()
 	activeWindowProp, err := xproto.GetProperty(xi.conn, false, xi.rootWin, atomActiveWindow.Atom, xproto.GetPropertyTypeAny, 0, (1<<32)-1).Reply()
 
@@ -136,7 +137,7 @@ func (xi *XInfo) getActiveWindata(propValues * map[string]string) error {
 	return nil
 }
 
-func getPIDInfoProps(pid uint32, propValues * map[string]string) error {
+func getPIDInfoProps(pid uint32, propValues * WinProps) error {
 
 	//get the name of the process
 
@@ -184,20 +185,19 @@ func (xi *XInfo) getPIDForWindow(window xproto.Window) (uint32, error) {
 	return binary.LittleEndian.Uint32(reply.Value), nil
 }
 
-func (xi *XInfo) getFullKey() (*map[string]string, error) {
+func (xi *XInfo) getFullKey(propValues *WinProps)  error {
 
-	propValues := make(map[string]string)
 
 	viewPort, err := xi.getViewPort()
 	if err != nil {
-		return nil, err
+		return  err
 	}
-	propValues["WM_VIEWPORT"] = viewPort
+	(*propValues)["WM_VIEWPORT"] = viewPort
 
-	err = xi.getActiveWindata(&propValues)
+	err = xi.getActiveWindowData(propValues)
 	if err != nil {
-		return nil, err
+		return  err
 	}
 
-	return &propValues, nil
+	return  nil
 }
