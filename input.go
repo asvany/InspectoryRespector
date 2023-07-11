@@ -201,8 +201,8 @@ func EventLogNG(valid_devices []xinput.XDeviceInfo, stopChan chan os.Signal, wg 
 						} else {
 							fmt.Printf("Unknown event type: %v\n", event.Type)
 						}
-						fmt.Printf("TS:%v event: device:%v device.Id:%v event.type:%v event.Field:%v event.Axes:%v \n",
-							0, device.Name, device.Id, event.Type, event.Field, event.Axes)
+						// fmt.Printf("TS:%v event: device:%v device.Id:%v event.type:%v event.Field:%v event.Axes:%v \n",
+						// 	0, device.Name, device.Id, event.Type, event.Field, event.Axes)
 						input_events_channel.Send(out_event)
 					}
 				case <-ctx.Done():

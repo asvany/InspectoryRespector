@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sort"
 
 	// "time"
 
@@ -71,6 +72,10 @@ func (xi *XInfo) CheckStringReply(reply *xproto.GetPropertyReply, err error) (*x
 		return reply, fmt.Errorf("unexpected property format or type")
 	}
 	return reply, err
+}
+
+func (xi *XInfo) Close() {
+	xi.conn.Close()
 }
 
 func (xi *XInfo) getViewPort() (string, error) {
@@ -187,27 +192,36 @@ func (xi *XInfo) getPIDForWindow(window xproto.Window) (uint32, error) {
 	return binary.LittleEndian.Uint32(reply.Value), nil
 }
 
-// return all key value pairs as a string with string builder for easy appending
-func getStringData(propValues * WinProps) string {
+
+// return all key value pairs in a sorted order as a string with string builder for easy appending
+func getStringDataSorted(propValues *WinProps) string {
 	var sb strings.Builder
-	for k, v := range *propValues {
-		sb.WriteString(fmt.Sprintf("%s=%s\n", k, v))
+
+	var keys []string
+	for k := range *propValues {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for  _,k := range keys {
+		sb.WriteString(fmt.Sprintf("%s=%s ", k, (*propValues)[k]))
 	}
 	return sb.String()
 }
 
-func (xi *XInfo) GetFullKey(propValues *WinProps) error {
+func (xi *XInfo) GetFullKey(propValues *WinProps) (string, error) {
 
 	viewPort, err := xi.getViewPort()
 	if err != nil {
-		return err
+		return fmt.Sprintf("%v", err), err
 	}
 	(*propValues)["WM_VIEWPORT"] = viewPort
 
 	err = xi.getActiveWindowData(propValues)
 	if err != nil {
-		return err
+		return fmt.Sprintf("%v", err), err
 	}
 
-	return nil
+	fp := getStringDataSorted(propValues)
+
+	return fp, nil
 }
