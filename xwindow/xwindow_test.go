@@ -13,10 +13,14 @@ func TestMain_xwindow(t *testing.T) {
 	defer xi.conn.Close()
 	propValues := make(WinProps)
 
-	err = xi.getFullKey(&propValues)
+	err = xi.GetFullKey(&propValues)
 	if err != nil {
 		t.Error(err)
 	}
 
 	t.Logf("key:%v", propValues)
+
+	fp := getStringData(&propValues)
+	t.Logf("fp:%v", fp)
+
 }

@@ -4,12 +4,14 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"strings"
 
 	// "time"
 
 	"github.com/BurntSushi/xgb"
 	"github.com/BurntSushi/xgb/xproto"
 )
+
 type WinProps map[string]string
 
 type XInfo struct {
@@ -92,7 +94,7 @@ func (xi *XInfo) getViewPort() (string, error) {
 	return fmt.Sprintf("WM_VIEWPORT_%d", (x/1920)+(y/1200)*4), nil
 }
 
-func (xi *XInfo) getActiveWindowData(propValues * WinProps) error {
+func (xi *XInfo) getActiveWindowData(propValues *WinProps) error {
 	atomActiveWindow, _ := xproto.InternAtom(xi.conn, false, uint16(len("_NET_ACTIVE_WINDOW")), "_NET_ACTIVE_WINDOW").Reply()
 	activeWindowProp, err := xproto.GetProperty(xi.conn, false, xi.rootWin, atomActiveWindow.Atom, xproto.GetPropertyTypeAny, 0, (1<<32)-1).Reply()
 
@@ -137,7 +139,7 @@ func (xi *XInfo) getActiveWindowData(propValues * WinProps) error {
 	return nil
 }
 
-func getPIDInfoProps(pid uint32, propValues * WinProps) error {
+func getPIDInfoProps(pid uint32, propValues *WinProps) error {
 
 	//get the name of the process
 
@@ -185,19 +187,27 @@ func (xi *XInfo) getPIDForWindow(window xproto.Window) (uint32, error) {
 	return binary.LittleEndian.Uint32(reply.Value), nil
 }
 
-func (xi *XInfo) getFullKey(propValues *WinProps)  error {
+// return all key value pairs as a string with string builder for easy appending
+func getStringData(propValues * WinProps) string {
+	var sb strings.Builder
+	for k, v := range *propValues {
+		sb.WriteString(fmt.Sprintf("%s=%s\n", k, v))
+	}
+	return sb.String()
+}
 
+func (xi *XInfo) GetFullKey(propValues *WinProps) error {
 
 	viewPort, err := xi.getViewPort()
 	if err != nil {
-		return  err
+		return err
 	}
 	(*propValues)["WM_VIEWPORT"] = viewPort
 
 	err = xi.getActiveWindowData(propValues)
 	if err != nil {
-		return  err
+		return err
 	}
 
-	return  nil
+	return nil
 }
