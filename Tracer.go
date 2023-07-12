@@ -4,13 +4,14 @@
 
 package main
 
-//go:generate protoc --go_out=. ir_record.proto
+//go:generate protoc --go_out=. --python_out=ir_protocol_py ir_record.proto
 
 import (
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -113,7 +114,7 @@ func (c *InputEventCollector) processWindowFocusChanges() {
 		// for k, v := range propValues {
 		// log.Printf("k:%v v:%v\n", k, v)
 		// }
-		if c.last_fp != "" {
+		if len(c.window.Properties) != 0 {
 			c.WriteToFile()
 			c.window = c.getNewWindow(&propValues)
 		}
@@ -123,7 +124,7 @@ func (c *InputEventCollector) processWindowFocusChanges() {
 
 func (c *InputEventCollector) WriteToFile() error {
 	currentDate := time.Now().Format("2006_01_02")
-	filename_base := "data_" + c.hostname + "_" + currentDate
+	filename_base := c.out_dir + "/data_" + c.hostname + "_" + currentDate
 	data, err := proto.Marshal(c.window)
 	if err != nil {
 		return fmt.Errorf("marshalling error %v", err)
@@ -140,16 +141,17 @@ func (c *InputEventCollector) WriteToFile() error {
 	}
 
 	options := &protojson.MarshalOptions{
-		UseProtoNames:   true,  // Használja a Proto neveket a mezők esetén
-		UseEnumNumbers:  false, // Használja az Enum számértékeit az enum mezők esetén
-		EmitUnpopulated: true,  // A beállítatlan mezők is legyenek jelen a JSON-ben
+		UseProtoNames:   true,  // Using proto field names
+		UseEnumNumbers:  false, // Using enum names
+		EmitUnpopulated: true,  // The unpopulated fields are emitted
+		Indent:          "  ",  // the indent is two spaces
 	}
 
 	jsonString, err := options.Marshal(c.window)
 	if err != nil {
 		return err
 	}
-
+	jsonString = append(jsonString, []byte(",\n")...)
 	// Open JSON file for appending
 	fJSON, err := os.OpenFile(filename_base+".json", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
@@ -180,7 +182,7 @@ func (c *InputEventCollector) getNewWindow(props *xwindow.WinProps) *ir_protocol
 // this is the main file and this is the start function of the application
 func main() {
 	fmt.Println("Hello World")
-	err := godotenv.Load("secret.env", "unsecret.env")
+	err := godotenv.Load("unsecret.env", "secret.env")
 	if err != nil {
 		log.Println("WARNING: error while loading all env files: ", err)
 	}
@@ -188,7 +190,12 @@ func main() {
 	if out_dir == "" {
 		out_dir = "~/go/src/asvany/InspecptryRespector/dump"
 	}
+	out_dir, err = filepath.Abs(out_dir)
+	if err != nil {
+		log.Println("ERROR: ", err)
+	}
 	os.MkdirAll(out_dir, 0755)
+	fmt.Printf("out_dir:%v\n", out_dir)
 
 	loc_chan := locationHandling()
 
