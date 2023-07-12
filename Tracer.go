@@ -7,6 +7,7 @@ package main
 //go:generate protoc --go_out=. --python_out=ir_protocol_py ir_record.proto
 
 import (
+	"encoding/binary"
 	"fmt"
 	"log"
 	"os"
@@ -115,9 +116,10 @@ func (c *InputEventCollector) processWindowFocusChanges() {
 		// log.Printf("k:%v v:%v\n", k, v)
 		// }
 		if len(c.window.Properties) != 0 {
+			fmt.Println("write to file")
 			c.WriteToFile()
-			c.window = c.getNewWindow(&propValues)
 		}
+		c.window = c.getNewWindow(&propValues)
 		c.last_fp = fp
 	}
 }
@@ -135,6 +137,13 @@ func (c *InputEventCollector) WriteToFile() error {
 	}
 	defer f.Close()
 
+	//calculate the size of the data
+	size := make([]byte, 4)
+	binary.LittleEndian.PutUint32(size, uint32(len(data)))
+	// Write size to file
+	if _, err := f.Write(size); err != nil {
+		return fmt.Errorf("writing error %v", err)
+	}
 	// Write data to file
 	if _, err := f.Write(data); err != nil {
 		return fmt.Errorf("writing error %v", err)
