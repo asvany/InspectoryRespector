@@ -1,7 +1,12 @@
+echo "Sourcing environment variables"
+source unsecret.env
+touch secret.env
+source secret.env
+
 if ! [[ -z "${PY_ENV}" ]]; then
     echo "PY_ENV already set to $PY_ENV"
-    return
-fi
+    
+else
 
 
 export PY_ENV=.py_env
@@ -16,6 +21,8 @@ echo "Installing requirements"
 pip install -r requirements.txt
 echo "Compiling protocol buffer"
 protoc --go_out=. --python_out=ir_protocol_py ir_record.proto
+
+fi
 
 echo "Ready to go!"
 
