@@ -125,8 +125,14 @@ func (c *InputEventCollector) processWindowFocusChanges() {
 }
 
 func (c *InputEventCollector) WriteToFile() error {
-	currentDate := time.Now().Format("2006_01_02")
-	filename_base := c.out_dir + "/data_" + c.hostname + "_" + currentDate
+	currentTS := time.Now().Format("2006_01_02-15")
+	currentDay := time.Now().Format("2006_01_02")
+
+	out_dir := c.out_dir + "/" + c.hostname + "/" + currentDay
+	fmt.Printf("out_dir:%v\n", out_dir)
+	os.MkdirAll(out_dir, 0755)
+
+	filename_base := out_dir + "/data_" + c.hostname + "_" + currentTS
 	data, err := proto.Marshal(c.window)
 	if err != nil {
 		return fmt.Errorf("marshalling error %v", err)
@@ -209,8 +215,6 @@ func main() {
 	if err != nil {
 		log.Println("ERROR: ", err)
 	}
-	os.MkdirAll(out_dir, 0755)
-	fmt.Printf("out_dir:%v\n", out_dir)
 
 	loc_chan := locationHandling()
 
