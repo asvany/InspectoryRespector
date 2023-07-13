@@ -191,10 +191,16 @@ func (c *InputEventCollector) getNewWindow(props *xwindow.WinProps) *ir_protocol
 // this is the main file and this is the start function of the application
 func main() {
 	fmt.Println("Hello World")
-	err := godotenv.Load("unsecret.env", "secret.env")
+	err := godotenv.Load("secret.env")
 	if err != nil {
-		log.Println("WARNING: error while loading all env files: ", err)
+		log.Println("WARNING: error while loading secret env files: ", err)
 	}
+
+	err = godotenv.Load("unsecret.env")
+	if err != nil {
+		log.Println("WARNING: error while loading unsecret env files: ", err)
+	}
+
 	out_dir := os.Getenv("DUMP_DIR")
 	if out_dir == "" {
 		out_dir = "~/go/src/asvany/InspecptryRespector/dump"

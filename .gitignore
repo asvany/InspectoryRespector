@@ -11,3 +11,4 @@ data.json.gz
 data_gram_2023_07_11.json
 data_gram_2023_07_11.protodump
 ir_protocol_py/__pycache__/ir_record_pb2.cpython-311.pyc
+__debug_bin
