@@ -2,12 +2,12 @@ package xwindow
 
 import (
 	"testing"
-	"github.com/asvany/InspectoryRespector/common"
 
+	"github.com/asvany/InspectoryRespector/common"
 )
 
 func TestMain_xwindow(t *testing.T) {
-	common.InitEnv()
+	common.InitEnv("../")
 	xi, err := NewXInfo()
 	if err != nil {
 		t.Error(err)
@@ -16,7 +16,7 @@ func TestMain_xwindow(t *testing.T) {
 	defer xi.Close()
 	propValues := make(WinProps)
 
-	fp,err := xi.GetFullKey(&propValues)
+	fp, err := xi.GetFullKey(&propValues)
 	if err != nil {
 		t.Error(err)
 	}

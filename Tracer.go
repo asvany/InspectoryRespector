@@ -198,7 +198,7 @@ func (c *InputEventCollector) getNewWindow(props *xwindow.WinProps) *ir_protocol
 // this is the main file and this is the start function of the application
 func main() {
 	fmt.Println("Hello World")
-	common.InitEnv()
+	common.InitEnv("")
 
 
 	out_dir := os.Getenv("DUMP_DIR")

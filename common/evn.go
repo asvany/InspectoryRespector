@@ -1,19 +1,20 @@
 package common
 
 import (
-	"log"
 	"fmt"
+	"log"
 	"os"
-	"github.com/joho/godotenv"
 
+	"github.com/joho/godotenv"
 )
-func InitEnv()  {
-	err := godotenv.Load("secret.env")
+
+func InitEnv(pathPrefix string) {
+	err := godotenv.Load(pathPrefix + "secret.env")
 	if err != nil {
 		log.Println("WARNING: error while loading secret env files: ", err)
 	}
 
-	err = godotenv.Load("unsecret.env")
+	err = godotenv.Load(pathPrefix + "unsecret.env")
 	if err != nil {
 		log.Println("WARNING: error while loading unsecret env files: ", err)
 	}
