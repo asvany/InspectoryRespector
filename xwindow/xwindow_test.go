@@ -8,6 +8,7 @@ import (
 
 func TestMain_xwindow(t *testing.T) {
 	common.InitEnv("../")
+	
 	xi, err := NewXInfo()
 	if err != nil {
 		t.Error(err)
