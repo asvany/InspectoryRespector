@@ -216,6 +216,12 @@ func main() {
 		log.Println("ERROR: ", err)
 	}
 
+	// check the DISPLAY environment variable
+	display := os.Getenv("DISPLAY")
+	if display == "" {
+		log.Fatal("ERROR: DISPLAY environment variable not set")
+	}
+
 	loc_chan := locationHandling()
 
 	var wg sync.WaitGroup
