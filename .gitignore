@@ -1,5 +1,7 @@
 secret.env
 InspectoryRespector
+ir_protocol/ir_record.pb.go
+ir_protocol_py/ir_record_pb2.py
 a.out
 data
 Tracer.go
