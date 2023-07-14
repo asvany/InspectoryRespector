@@ -18,11 +18,10 @@ import (
 
 	"github.com/asvany/InspectoryRespector/xwindow"
 
-	"github.com/asvany/InspectoryRespector/geo"
 	"github.com/asvany/InspectoryRespector/common"
+	"github.com/asvany/InspectoryRespector/geo"
 
-
-	"google.golang.org/protobuf/encoding/protojson"
+	// "google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -38,6 +37,7 @@ type InputEventCollector struct {
 	hostname string                    // hostname
 	location *ir_protocol.Location     // location
 	out_dir  string                    // output directory
+	tmp_dir  string                    // temporary directory
 }
 
 func (c *InputEventCollector) processLocation(loc_chan chan *ir_protocol.Location) {
@@ -124,21 +124,56 @@ func (c *InputEventCollector) processWindowFocusChanges() {
 		c.last_fp = fp
 	}
 }
+var mu sync.Mutex
 
-func (c *InputEventCollector) WriteToFile() error {
+// this method move the temporaly dumps to the output directory if it neccessary and returns the current filename
+func (c * InputEventCollector) GetFileNameAndOrganizeFiles() string{
+	mu.Lock()
+	defer mu.Unlock()
+	
 	currentTS := time.Now().Format("2006_01_02-15")
 	currentDay := time.Now().Format("2006_01_02")
-
 	out_dir := c.out_dir + "/" + c.hostname + "/" + currentDay
-	fmt.Printf("out_dir:%v\n", out_dir)
-	os.MkdirAll(out_dir, 0755)
 
-	filename_base := out_dir + "/data_" + c.hostname + "_" + currentTS
+	filename_base := "data_" + c.hostname + "_" + currentTS + ".protodump"
+
+	filename := c.tmp_dir + "/" + filename_base
+	os.MkdirAll(c.tmp_dir, 0755)
+
+
+	//check that filenname_base is exist in the tmp_dir
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		// check that any file exist in the tmp_dir
+		files, err := os.ReadDir(c.tmp_dir)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if len(files) != 0 {
+			// move all files to the out_dir
+			os.MkdirAll(out_dir, 0755)
+			for _, file := range files {
+				fmt.Printf("move file:%v\n", file.Name())
+				os.Rename(c.tmp_dir+"/"+file.Name(), out_dir+"/"+file.Name())
+			}
+		}
+	}
+
+	return filename
+
+
+
+
+}
+
+func (c *InputEventCollector) WriteToFile() error {
+	
+
+	filename := c.GetFileNameAndOrganizeFiles()
 	data, err := proto.Marshal(c.window)
 	if err != nil {
 		return fmt.Errorf("marshalling error %v", err)
 	} // Open file for appending
-	f, err := os.OpenFile(filename_base+".protodump", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return fmt.Errorf("opening file  error %v", err)
 	}
@@ -156,29 +191,7 @@ func (c *InputEventCollector) WriteToFile() error {
 		return fmt.Errorf("writing error %v", err)
 	}
 
-	options := &protojson.MarshalOptions{
-		UseProtoNames:   true,  // Using proto field names
-		UseEnumNumbers:  false, // Using enum names
-		EmitUnpopulated: true,  // The unpopulated fields are emitted
-		Indent:          "  ",  // the indent is two spaces
-	}
-
-	jsonString, err := options.Marshal(c.window)
-	if err != nil {
-		return err
-	}
-	jsonString = append(jsonString, []byte(",\n")...)
-	// Open JSON file for appending
-	fJSON, err := os.OpenFile(filename_base+".json", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
-	if err != nil {
-		return fmt.Errorf("opening JSON file error %v", err)
-	}
-	defer fJSON.Close()
-
-	// Write JSON to file
-	if _, err := fJSON.Write([]byte(jsonString)); err != nil {
-		return fmt.Errorf("writing JSON error %v", err)
-	}
+	
 
 	return nil
 
@@ -202,13 +215,24 @@ func main() {
 
 
 	out_dir := os.Getenv("DUMP_DIR")
+	HOME :=os.Getenv("HOME")
 	if out_dir == "" {
-		out_dir = "~/go/src/asvany/InspecptryRespector/dump"
+		out_dir = HOME+"/InspecptryRespector_dumps"
 	}
 	out_dir, err := filepath.Abs(out_dir)
 	if err != nil {
 		log.Println("ERROR: ", err)
 	}
+
+	tmp_dir := os.Getenv("IR_TMP_DIR")
+	if tmp_dir == "" {
+		tmp_dir = HOME+"/.cache/InspecptryRespector"
+	}
+	tmp_dir, err = filepath.Abs(tmp_dir)
+	if err != nil {
+		log.Println("ERROR: ", err)
+	}
+
 
 	// check the DISPLAY environment variable
 
@@ -224,7 +248,11 @@ func main() {
 		hostname: hostname,
 		location: nil,
 		out_dir:  out_dir,
+		tmp_dir: tmp_dir,
 	}
+	fmt.Printf("out_dir:%v\n", out_dir)
+	fmt.Printf("tmp_dir:%v\n", tmp_dir)
+
 
 	InputEventCollector.window = InputEventCollector.getNewWindow(&xwindow.WinProps{})
 
@@ -233,6 +261,15 @@ func main() {
 	go func() {
 		for range wc_ticker.C {
 			go InputEventCollector.processWindowFocusChanges()
+		}
+	}()
+
+
+	cache_updater_ticker := time.NewTicker(60 * time.Second)
+
+	go func() {
+		for range cache_updater_ticker.C {
+			go InputEventCollector.GetFileNameAndOrganizeFiles()
 		}
 	}()
 
