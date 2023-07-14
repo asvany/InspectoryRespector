@@ -220,6 +220,8 @@ func main() {
 	display := os.Getenv("DISPLAY")
 	if display == "" {
 		log.Fatal("ERROR: DISPLAY environment variable not set")
+	} else {
+		fmt.Printf("DISPLAY is set to:%v\n", display)
 	}
 
 	loc_chan := locationHandling()
