@@ -1,4 +1,4 @@
-package main
+package xinputhandler
 
 import (
 	"context"
@@ -30,7 +30,7 @@ import (
 //
 // )
 type InputEventData struct {
-	timestamp  time.Time
+	Timestamp  time.Time
 	DeviceId   uint64
 	DeviceName string
 	EventType  ir_protocol.EventType
@@ -65,19 +65,19 @@ type MotionEvent struct {
 }
 
 func (e *InputEventData) String() string {
-	return fmt.Sprintf("InputEvent: %v %v %v %v", e.timestamp, e.DeviceId, e.DeviceName, e.EventType)
+	return fmt.Sprintf("InputEvent: %v %v %v %v", e.Timestamp, e.DeviceId, e.DeviceName, e.EventType)
 }
 
 func (e *ButtonEventData) String() string {
-	return fmt.Sprintf("ButtonEvent: %v %v %v %v %v", e.timestamp, e.DeviceId, e.DeviceName, e.EventType, e.Button)
+	return fmt.Sprintf("ButtonEvent: %v %v %v %v %v", e.Timestamp, e.DeviceId, e.DeviceName, e.EventType, e.Button)
 }
 
 func (e *KeyEventData) String() string {
-	return fmt.Sprintf("KeyEvent: %v %v %v %v %v", e.timestamp, e.DeviceId, e.DeviceName, e.EventType, e.KeyCode)
+	return fmt.Sprintf("KeyEvent: %v %v %v %v %v", e.Timestamp, e.DeviceId, e.DeviceName, e.EventType, e.KeyCode)
 }
 
 func (e *MotionEvent) String() string {
-	return fmt.Sprintf("MotionEvent: %v %v %v %v %v", e.timestamp, e.DeviceId, e.DeviceName, e.EventType, e.AxisPosition)
+	return fmt.Sprintf("MotionEvent: %v %v %v %v %v", e.Timestamp, e.DeviceId, e.DeviceName, e.EventType, e.AxisPosition)
 }
 
 type InputEventsChannelType = cc.ChannelWithConcurrentSenders[InputEvent]
@@ -176,7 +176,7 @@ func EventLogNG(valid_devices []xinput.XDeviceInfo, stopChan chan os.Signal, wg 
 						}
 						var out_event InputEvent
 						event_common_data := InputEventData{
-							timestamp:  time.Now(),
+							Timestamp:  time.Now(),
 							DeviceName: device.Name,
 							DeviceId:   device.Id,
 							EventType:  event_type_mapping[event.Type],

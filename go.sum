@@ -2,9 +2,14 @@ github.com/BurntSushi/xgb v0.0.0-20210121224620-deaf085860bc h1:7D+Bh06CRPCJO3gr
 github.com/BurntSushi/xgb v0.0.0-20210121224620-deaf085860bc/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/asvany/ChannelWithConcurrentSenders v1.0.2 h1:i3U+DRQXbEq8imIf+CdzdS3I/QyNsLYhJQqZyUGyTb8=
 github.com/asvany/ChannelWithConcurrentSenders v1.0.2/go.mod h1:uO7GzPlyAc2c36wropmY4Gp9osWHsSg9uoQz6CRkaYU=
+github.com/dawidd6/go-appindicator v1.0.1 h1:3+o8txNrFwXfNWgw27vZA/mDOcNawHeoy7q8t6du3NQ=
+github.com/dawidd6/go-appindicator v1.0.1/go.mod h1:SP3MvlW1i7iKIqsj/KO4wY554lXCas/MEoToEY3q3rw=
 github.com/golang/protobuf v1.5.0/go.mod h1:FsONVRAS9T7sI+LIUmWTfcYkHO4aIWwzhcaSAoJOfIk=
 github.com/google/go-cmp v0.5.5 h1:Khx7svrCpmxxtHBq5j2mp/xVjsi8hQMfNLvJFAlrGgU=
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
+github.com/gotk3/gotk3 v0.5.0/go.mod h1:/hqFpkNa9T3JgNAE2fLvCdov7c5bw//FHNZrZ3Uv9/Q=
+github.com/gotk3/gotk3 v0.6.2 h1:sx/PjaKfKULJPTPq8p2kn2ZbcNFxpOJqi4VLzMbEOO8=
+github.com/gotk3/gotk3 v0.6.2/go.mod h1:/hqFpkNa9T3JgNAE2fLvCdov7c5bw//FHNZrZ3Uv9/Q=
 github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
 github.com/joho/godotenv v1.5.1/go.mod h1:f4LDr5Voq0i2e/R5DDNOoa2zzDfwtkZa6DnEwAbqwq4=
 github.com/oxzi/go-xinput v0.1.1 h1:+dftYf9rVcuIT8TCBsvVcdQ/wU9hbAZwPNc9NvH3pZ0=

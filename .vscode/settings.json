@@ -1,12 +1,17 @@
 {
 	"cSpell.words": [
+		"appindicator",
+		"dawidd",
 		"Inspectory",
 		"joho",
 		"oxzi",
+		"protodump",
 		"protoimpl",
 		"ptypes",
+		"shurcoo",
 		"Systray",
-		"timestamppb"
+		"timestamppb",
+		"xinputhandler"
 	],
 	"[python]": {
 		"editor.defaultFormatter": "ms-python.black-formatter"

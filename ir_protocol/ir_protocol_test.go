@@ -1,11 +1,11 @@
-package main
+package ir_protocol
 
 import (
 	"testing"
 	"time"
 
 	"github.com/asvany/InspectoryRespector/common"
-	"github.com/asvany/InspectoryRespector/ir_protocol"
+	// "github.com/asvany/InspectoryRespector/ir_protocol"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -15,7 +15,7 @@ func Test_timestamp(t *testing.T) {
 	now := time.Now()
 	ts := timestamppb.New(now)
 
-	message := &ir_protocol.WindowChange{
+	message := &WindowChange{
 		Timestamp: ts,
 	}
 
