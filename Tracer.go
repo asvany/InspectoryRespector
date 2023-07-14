@@ -124,13 +124,14 @@ func (c *InputEventCollector) processWindowFocusChanges() {
 		c.last_fp = fp
 	}
 }
+
 var mu sync.Mutex
 
 // this method move the temporaly dumps to the output directory if it neccessary and returns the current filename
-func (c * InputEventCollector) GetFileNameAndOrganizeFiles() string{
+func (c *InputEventCollector) GetFileNameAndOrganizeFiles(force bool) string {
 	mu.Lock()
 	defer mu.Unlock()
-	
+
 	currentTS := time.Now().Format("2006_01_02-15")
 	currentDay := time.Now().Format("2006_01_02")
 	out_dir := c.out_dir + "/" + c.hostname + "/" + currentDay
@@ -140,9 +141,8 @@ func (c * InputEventCollector) GetFileNameAndOrganizeFiles() string{
 	filename := c.tmp_dir + "/" + filename_base
 	os.MkdirAll(c.tmp_dir, 0755)
 
-
 	//check that filenname_base is exist in the tmp_dir
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
+	if _, err := os.Stat(filename); os.IsNotExist(err) || force {
 		// check that any file exist in the tmp_dir
 		files, err := os.ReadDir(c.tmp_dir)
 		if err != nil {
@@ -152,23 +152,25 @@ func (c * InputEventCollector) GetFileNameAndOrganizeFiles() string{
 			// move all files to the out_dir
 			os.MkdirAll(out_dir, 0755)
 			for _, file := range files {
-				fmt.Printf("move file:%v\n", file.Name())
-				os.Rename(c.tmp_dir+"/"+file.Name(), out_dir+"/"+file.Name())
+
+				if !force {
+					os.Rename(c.tmp_dir+"/"+file.Name(), out_dir+"/"+file.Name())
+					fmt.Printf("move file:%v\n", file.Name())
+				} else {
+					common.Copy(c.tmp_dir+"/"+file.Name(), out_dir+"/"+file.Name())
+					fmt.Printf("copy file:%v\n", file.Name())
+				}
 			}
 		}
 	}
 
 	return filename
 
-
-
-
 }
 
 func (c *InputEventCollector) WriteToFile() error {
-	
 
-	filename := c.GetFileNameAndOrganizeFiles()
+	filename := c.GetFileNameAndOrganizeFiles(false)
 	data, err := proto.Marshal(c.window)
 	if err != nil {
 		return fmt.Errorf("marshalling error %v", err)
@@ -191,8 +193,6 @@ func (c *InputEventCollector) WriteToFile() error {
 		return fmt.Errorf("writing error %v", err)
 	}
 
-	
-
 	return nil
 
 }
@@ -213,11 +213,10 @@ func main() {
 	fmt.Println("Hello World")
 	common.InitEnv("")
 
-
 	out_dir := os.Getenv("DUMP_DIR")
-	HOME :=os.Getenv("HOME")
+	HOME := os.Getenv("HOME")
 	if out_dir == "" {
-		out_dir = HOME+"/InspecptryRespector_dumps"
+		out_dir = HOME + "/InspecptryRespector_dumps"
 	}
 	out_dir, err := filepath.Abs(out_dir)
 	if err != nil {
@@ -226,13 +225,12 @@ func main() {
 
 	tmp_dir := os.Getenv("IR_TMP_DIR")
 	if tmp_dir == "" {
-		tmp_dir = HOME+"/.cache/InspecptryRespector"
+		tmp_dir = HOME + "/.cache/InspecptryRespector"
 	}
 	tmp_dir, err = filepath.Abs(tmp_dir)
 	if err != nil {
 		log.Println("ERROR: ", err)
 	}
-
 
 	// check the DISPLAY environment variable
 
@@ -248,11 +246,10 @@ func main() {
 		hostname: hostname,
 		location: nil,
 		out_dir:  out_dir,
-		tmp_dir: tmp_dir,
+		tmp_dir:  tmp_dir,
 	}
 	fmt.Printf("out_dir:%v\n", out_dir)
 	fmt.Printf("tmp_dir:%v\n", tmp_dir)
-
 
 	InputEventCollector.window = InputEventCollector.getNewWindow(&xwindow.WinProps{})
 
@@ -264,12 +261,11 @@ func main() {
 		}
 	}()
 
-
 	cache_updater_ticker := time.NewTicker(60 * time.Second)
 
 	go func() {
 		for range cache_updater_ticker.C {
-			go InputEventCollector.GetFileNameAndOrganizeFiles()
+			go InputEventCollector.GetFileNameAndOrganizeFiles(false)
 		}
 	}()
 
@@ -288,6 +284,7 @@ func main() {
 	input_events.Wait()
 	fmt.Println("LAST WRITE")
 	err = InputEventCollector.WriteToFile()
+	InputEventCollector.GetFileNameAndOrganizeFiles(true)
 	if err != nil {
 		log.Println("ERROR: ", err)
 	}
@@ -297,7 +294,6 @@ func main() {
 	time.Sleep(time.Second * 1)
 	fmt.Println("EXIT")
 }
-
 
 func getHostname() string {
 	hostname, err := os.Hostname()
