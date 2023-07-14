@@ -19,6 +19,8 @@ import (
 	"github.com/asvany/InspectoryRespector/xwindow"
 
 	"github.com/asvany/InspectoryRespector/geo"
+	"github.com/asvany/InspectoryRespector/common"
+
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -28,7 +30,6 @@ import (
 	"github.com/asvany/ChannelWithConcurrentSenders/cc"
 
 	"github.com/asvany/InspectoryRespector/ir_protocol"
-	"github.com/joho/godotenv"
 )
 
 type InputEventCollector struct {
@@ -197,32 +198,19 @@ func (c *InputEventCollector) getNewWindow(props *xwindow.WinProps) *ir_protocol
 // this is the main file and this is the start function of the application
 func main() {
 	fmt.Println("Hello World")
-	err := godotenv.Load("secret.env")
-	if err != nil {
-		log.Println("WARNING: error while loading secret env files: ", err)
-	}
+	common.InitEnv()
 
-	err = godotenv.Load("unsecret.env")
-	if err != nil {
-		log.Println("WARNING: error while loading unsecret env files: ", err)
-	}
 
 	out_dir := os.Getenv("DUMP_DIR")
 	if out_dir == "" {
 		out_dir = "~/go/src/asvany/InspecptryRespector/dump"
 	}
-	out_dir, err = filepath.Abs(out_dir)
+	out_dir, err := filepath.Abs(out_dir)
 	if err != nil {
 		log.Println("ERROR: ", err)
 	}
 
 	// check the DISPLAY environment variable
-	display := os.Getenv("DISPLAY")
-	if display == "" {
-		log.Fatal("ERROR: DISPLAY environment variable not set")
-	} else {
-		fmt.Printf("DISPLAY is set to:%v\n", display)
-	}
 
 	loc_chan := locationHandling()
 
@@ -272,6 +260,7 @@ func main() {
 	time.Sleep(time.Second * 1)
 	fmt.Println("EXIT")
 }
+
 
 func getHostname() string {
 	hostname, err := os.Hostname()

@@ -225,3 +225,4 @@ func (xi *XInfo) GetFullKey(propValues *WinProps) (string, error) {
 
 	return fp, nil
 }
+
