@@ -2,8 +2,11 @@ package tray
 
 import (
 	// "os"
+
 	"log"
+	"os"
 	"runtime"
+	"sync"
 
 	"github.com/dawidd6/go-appindicator"
 	// "github.com/gotk3/gotk3/glib"
@@ -16,11 +19,26 @@ var enabled bool
 var icon_file_enabled = "binary/icon_base_2.png"
 var icon_file_disabled = "binary/icon_base_2_bw.png"
 
+// change appindicator icon
+func SetIcon(indicator *appindicator.Indicator, enabled bool) {
+	if enabled {
+		indicator.SetIcon(icon_file_enabled)
+	} else {
+		indicator.SetIcon(icon_file_disabled)
+	}
+}
+
 // var image = trayhost.NewImageFromPath(icon_file)
 
-func InitTray(inputEventCollector *tracker.InputEventCollector) {
-	enabled = true
+func InitTray(stopChan chan os.Signal, wg *sync.WaitGroup, inputEventCollector *tracker.InputEventCollector) {
+	defer func() {
 
+		wg.Done()
+
+		log.Println("InitTray Done\n")
+	}()
+	enabled = true
+	log.Printf("InitTray\n")
 	runtime.LockOSThread()
 
 	gtk.Init(nil)
@@ -43,10 +61,13 @@ func InitTray(inputEventCollector *tracker.InputEventCollector) {
 	item.Connect("activate", func() {
 		inputEventCollector.Enabled = !enabled
 		if inputEventCollector.Enabled {
-			// enable
+			inputEventCollector.Enabled = false
+			log.Printf("InputEventCollector disabled\n")
 		} else {
-			// disable
+			inputEventCollector.Enabled = true
+			log.Printf("InputEventCollector enabled\n")
 		}
+		SetIcon(indicator, inputEventCollector.Enabled)
 	})
 	menu.Append(item)
 
@@ -55,13 +76,25 @@ func InitTray(inputEventCollector *tracker.InputEventCollector) {
 		log.Fatal("Unable create menu item")
 	}
 	item.Connect("activate", func() {
-		gtk.MainQuit()
+		log.Printf("Quit Application Menuitem pressed, sent stop\n")
+		stopChan <- os.Interrupt
 	})
 	menu.Append(item)
 
 	menu.ShowAll()
 	indicator.SetMenu(menu)
+	SetIcon(indicator, inputEventCollector.Enabled)
 
-	gtk.Main()
+	log.Printf("Indicator created")
+	go func() {
+		log.Printf("GTK main started\n")
+		gtk.Main()
+		log.Printf("GTK main finished\n")
+	}()
+
+	<-stopChan
+	gtk.MainQuit()
+	log.Printf("GTK main quit called\n")
+	wg.Done()
 
 }

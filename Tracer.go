@@ -16,26 +16,22 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asvany/InspectoryRespector/xwindow"
 	"github.com/asvany/InspectoryRespector/tracker"
+	"github.com/asvany/InspectoryRespector/xwindow"
 
 	"github.com/asvany/InspectoryRespector/xinputhandler"
-
 
 	"github.com/asvany/InspectoryRespector/common"
 	"github.com/asvany/InspectoryRespector/geo"
 	"github.com/asvany/InspectoryRespector/tray"
 
-
 	// "google.golang.org/protobuf/encoding/protojson"
 	// "google.golang.org/protobuf/proto"
-
 
 	"github.com/asvany/ChannelWithConcurrentSenders/cc"
 
 	"github.com/asvany/InspectoryRespector/ir_protocol"
 )
-
 
 func getHostname() string {
 	hostname, err := os.Hostname()
@@ -64,10 +60,9 @@ func locationHandling() chan *ir_protocol.Location {
 	return loc_chan
 }
 
-
 // this is the main file and this is the start function of the application
 func main() {
-	fmt.Println("Hello World")
+	fmt.Println("Hello World: v1.2")
 	common.InitEnv("")
 
 	out_dir := os.Getenv("DUMP_DIR")
@@ -135,8 +130,8 @@ func main() {
 
 	xinputhandler.SetupInput(stopChan, &wg, input_events)
 
-
-	go tray.InitTray(inputEventCollector)
+	wg.Add(1)
+	go tray.InitTray(stopChan, &wg, inputEventCollector)
 
 	fmt.Print("WAIT")
 
