@@ -8,12 +8,14 @@ package main
 
 import (
 	// "encoding/binary"
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/asvany/InspectoryRespector/tracker"
@@ -121,21 +123,43 @@ func main() {
 		}
 	}()
 
-	stopChan := make(chan os.Signal, 1)
-
-	signal.Notify(stopChan, os.Interrupt)
+	quitChan := make(chan bool)
 
 	go inputEventCollector.ProcessInputEvents(input_events)
 	go inputEventCollector.ProcessLocation(loc_chan)
 
-	xinputhandler.SetupInput(stopChan, &wg, input_events)
+	xinputhandler.SetupInput(quitChan, &wg, input_events)
 
 	wg.Add(1)
-	go tray.InitTray(stopChan, &wg, inputEventCollector)
+	tray.InitTray(quitChan, &wg, inputEventCollector)
 
-	fmt.Print("WAIT")
+	ctx_ctrl_c, cancel_wait_ctrl_c := context.WithCancel(context.Background())
+
+	stopChan := make(chan os.Signal, 1)
+	signal.Notify(stopChan, os.Interrupt, syscall.SIGTERM)
+	// signal.Notify(stopChan, os.Interrupt)
+	go func() {
+		for {
+			select {
+			case <-stopChan:
+				{
+					fmt.Println("received stop signal")
+					close(quitChan)
+				}
+			case <-ctx_ctrl_c.Done():
+				{
+					log.Printf("Conext Done\n")
+					return
+				}
+			}
+		}
+	}()
+
+	fmt.Println("WAIT")
 
 	wg.Wait()
+	fmt.Println("WAIT END")
+	cancel_wait_ctrl_c()
 	input_events.Wait()
 	fmt.Println("LAST WRITE")
 	err = inputEventCollector.WriteToFile()

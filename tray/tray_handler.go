@@ -4,13 +4,13 @@ import (
 	// "os"
 
 	"log"
-	"os"
 	"runtime"
 	"sync"
 
 	"github.com/dawidd6/go-appindicator"
 	// "github.com/gotk3/gotk3/glib"
 	"github.com/asvany/InspectoryRespector/tracker"
+	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 )
 
@@ -30,13 +30,8 @@ func SetIcon(indicator *appindicator.Indicator, enabled bool) {
 
 // var image = trayhost.NewImageFromPath(icon_file)
 
-func InitTray(stopChan chan os.Signal, wg *sync.WaitGroup, inputEventCollector *tracker.InputEventCollector) {
-	defer func() {
+func InitTray(quitChan chan bool, wg *sync.WaitGroup, inputEventCollector *tracker.InputEventCollector) {
 
-		wg.Done()
-
-		log.Println("InitTray Done\n")
-	}()
 	enabled = true
 	log.Printf("InitTray\n")
 	runtime.LockOSThread()
@@ -77,7 +72,7 @@ func InitTray(stopChan chan os.Signal, wg *sync.WaitGroup, inputEventCollector *
 	}
 	item.Connect("activate", func() {
 		log.Printf("Quit Application Menuitem pressed, sent stop\n")
-		stopChan <- os.Interrupt
+		close(quitChan)
 	})
 	menu.Append(item)
 
@@ -85,16 +80,26 @@ func InitTray(stopChan chan os.Signal, wg *sync.WaitGroup, inputEventCollector *
 	indicator.SetMenu(menu)
 	SetIcon(indicator, inputEventCollector.Enabled)
 
+	// quit handler
+	go func() {
+		<-quitChan
+
+		log.Printf("Stop signal received in GTK quit handler\n")
+		// call quit when the main loop is idle
+		glib.IdleAdd(func() {
+			log.Printf("GTK main quit calling from IdleAdd\n")
+			gtk.MainQuit()
+
+		})
+	}()
+
 	log.Printf("Indicator created")
 	go func() {
 		log.Printf("GTK main started\n")
 		gtk.Main()
+		wg.Done()
 		log.Printf("GTK main finished\n")
-	}()
 
-	<-stopChan
-	gtk.MainQuit()
-	log.Printf("GTK main quit called\n")
-	wg.Done()
+	}()
 
 }

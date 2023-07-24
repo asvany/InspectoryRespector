@@ -9,8 +9,6 @@ import (
 	"github.com/asvany/InspectoryRespector/ir_protocol"
 	"github.com/oxzi/go-xinput"
 
-	"os"
-
 	"fmt"
 	"os/exec"
 	"time"
@@ -119,12 +117,15 @@ func validEvent(value xinput.Event) bool {
 	return false
 }
 
-func EventLogNG(valid_devices []xinput.XDeviceInfo, stopChan chan os.Signal, wg *sync.WaitGroup, input_events InputEventsChannelType) {
+func EventLogNG(valid_devices []xinput.XDeviceInfo, quitChan chan bool, wg *sync.WaitGroup, input_events InputEventsChannelType) {
 
-	// counter := 0
+	counter := 0
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer func() {
+
+		fmt.Println("CANCEL")
+
 		cancel()
 
 		wg.Done()
@@ -135,11 +136,10 @@ func EventLogNG(valid_devices []xinput.XDeviceInfo, stopChan chan os.Signal, wg 
 	// Start a goroutine for each device
 	for _, device := range valid_devices {
 		wg.Add(1)
-		// counter += 1
-		// fmt.Printf("Starting Event Handler %v\n", counter)
 
 		go func(device xinput.XDeviceInfo) {
-			fmt.Printf("Event Handler started: id:%v name:%v\n", device.Id, device.Name)
+			counter += 1
+			fmt.Printf("Event Handler started: id:%v name:%v counter:%v\n", device.Id, device.Name, counter)
 			display := xinput.XOpenDisplay(nil)
 			input_events_channel := input_events.AttachSender()
 
@@ -152,14 +152,13 @@ func EventLogNG(valid_devices []xinput.XDeviceInfo, stopChan chan os.Signal, wg 
 			defer func() {
 				wg.Done()
 				input_events_channel.DetachSender()
-				// counter -= 1
-				// fmt.Printf("Stopping Event Handler %v\n", counter)
+				counter -= 1
 
-				fmt.Printf("Close EventMap for device %v\n", device.Name)
-				eventMap.Close()
-				fmt.Printf("Closed EventMap for device %v\n", device.Name)
-				xinput.XCloseDisplay(display)
-				fmt.Printf("Closed display for device %v\n", device.Name)
+				fmt.Printf("Close EventMap for device %v , counter:%v\n", device.Name, counter)
+				// eventMap.Close()
+				// fmt.Printf("Closed EventMap for device %v\n", device.Name)
+				// xinput.XCloseDisplay(display)
+				// fmt.Printf("Closed display for device %v\n", device.Name)
 
 			}()
 
@@ -201,8 +200,7 @@ func EventLogNG(valid_devices []xinput.XDeviceInfo, stopChan chan os.Signal, wg 
 						} else {
 							fmt.Printf("Unknown event type: %v\n", event.Type)
 						}
-						// fmt.Printf("TS:%v event: device:%v device.Id:%v event.type:%v event.Field:%v event.Axes:%v \n",
-						// 	0, device.Name, device.Id, event.Type, event.Field, event.Axes)
+						// fmt.Printf("TS:%v event: device:%v device.Id:%v event.type:%v event.Field:%v event.Axes:%v \n", 0, device.Name, device.Id, event.Type, event.Field, event.Axes)
 						input_events_channel.Send(out_event)
 					}
 				case <-ctx.Done():
@@ -214,20 +212,19 @@ func EventLogNG(valid_devices []xinput.XDeviceInfo, stopChan chan os.Signal, wg 
 	}
 
 	// Wait for a signal
-	<-stopChan
+	<-quitChan
+
 	fmt.Println("STOP")
 
 	// Cancel the context, which will stop all goroutines
 
-	fmt.Println("CANCEL")
-
 }
 
-func SetupInput(stopChan chan os.Signal, wg *sync.WaitGroup, input_events InputEventsChannelType) {
+func SetupInput(quitChan chan bool, wg *sync.WaitGroup, input_events InputEventsChannelType) {
 	valid_devices := InputList()
 	for _, device := range valid_devices {
 		fmt.Printf("%-40s\tid=%d\t[%v]\n", device.Name, device.Id, device.Use)
 	}
 	wg.Add(1)
-	go EventLogNG(valid_devices, stopChan, wg, input_events)
+	go EventLogNG(valid_devices, quitChan, wg, input_events)
 }
