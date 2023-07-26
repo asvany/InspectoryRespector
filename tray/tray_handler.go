@@ -14,17 +14,20 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 )
 
-var enabled bool
-
 var icon_file_enabled = "binary/icon_base_2.png"
 var icon_file_disabled = "binary/icon_base_2_bw.png"
 
 // change appindicator icon
 func SetIcon(indicator *appindicator.Indicator, enabled bool) {
+	indicator.SetIconThemePath("./binary")
 	if enabled {
 		indicator.SetIcon(icon_file_enabled)
+		indicator.SetAttentionIcon(icon_file_enabled)
+		indicator.SetIconFull(icon_file_enabled, "enabled")
 	} else {
 		indicator.SetIcon(icon_file_disabled)
+		indicator.SetAttentionIcon(icon_file_disabled)
+		indicator.SetIconFull(icon_file_disabled, "disabled")
 	}
 }
 
@@ -32,7 +35,6 @@ func SetIcon(indicator *appindicator.Indicator, enabled bool) {
 
 func InitTray(quitChan chan bool, wg *sync.WaitGroup, inputEventCollector *tracker.InputEventCollector) {
 
-	enabled = true
 	log.Printf("InitTray\n")
 	runtime.LockOSThread()
 
@@ -44,6 +46,12 @@ func InitTray(quitChan chan bool, wg *sync.WaitGroup, inputEventCollector *track
 	indicator := appindicator.New("Tracker", "indicator-messages", appindicator.CategoryApplicationStatus)
 	indicator.SetStatus(appindicator.StatusActive)
 
+	icon, err := gtk.Ic
+	if err != nil {
+		log.Fatal("Nem sikerült létrehozni az ikont: ", err)
+	}
+
+
 	menu, err := gtk.MenuNew()
 	if err != nil {
 		log.Fatal("Unable to create menu:", err)
@@ -54,7 +62,7 @@ func InitTray(quitChan chan bool, wg *sync.WaitGroup, inputEventCollector *track
 		log.Fatal("Unable create menu item")
 	}
 	item.Connect("activate", func() {
-		inputEventCollector.Enabled = !enabled
+
 		if inputEventCollector.Enabled {
 			inputEventCollector.Enabled = false
 			log.Printf("InputEventCollector disabled\n")

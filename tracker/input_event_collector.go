@@ -16,8 +16,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-
-
 type InputEventCollector struct {
 	Window   *ir_protocol.WindowChange // current window input data
 	Last_fp  string                    // last fingerprint
@@ -25,9 +23,8 @@ type InputEventCollector struct {
 	Location *ir_protocol.Location     // location
 	Out_dir  string                    // output directory
 	Tmp_dir  string                    // temporary directory
-	Enabled  bool
+	Enabled  bool                      // enabled state
 }
-
 
 func (c *InputEventCollector) ProcessLocation(loc_chan chan *ir_protocol.Location) {
 	for loc := range loc_chan {
@@ -37,51 +34,49 @@ func (c *InputEventCollector) ProcessLocation(loc_chan chan *ir_protocol.Locatio
 	}
 }
 
-
 func (c *InputEventCollector) ProcessInputEvents(input_events xinputhandler.InputEventsChannelType) {
-	if !c.Enabled {
-		return
-	}
 	for event := range input_events.ROChannel() {
-		// fmt.Println("Event:", event.String())
-		//switch by event type
-		dev, ok := c.Window.Events[event.GetDeviceId()]
-		if !ok {
-			dev = &ir_protocol.DeviceEvents{
-				DeviceName: event.GetDeviceName(),
+		if c.Enabled {
+			// fmt.Println("Event:", event.String())
+			//switch by event type
+			dev, ok := c.Window.Events[event.GetDeviceId()]
+			if !ok {
+				dev = &ir_protocol.DeviceEvents{
+					DeviceName: event.GetDeviceName(),
+				}
+				c.Window.Events[event.GetDeviceId()] = dev
 			}
-			c.Window.Events[event.GetDeviceId()] = dev
-		}
-		// var event interface{} = &ButtonEventData{InputEventData: InputEventData{DeviceId: 1, DeviceName: "Device1", EventType: 1, timestamp: time.Now()}, Button: 2}
+			// var event interface{} = &ButtonEventData{InputEventData: InputEventData{DeviceId: 1, DeviceName: "Device1", EventType: 1, timestamp: time.Now()}, Button: 2}
 
-		switch v := event.(type) {
-		case *xinputhandler.ButtonEventData:
-			// fmt.Printf("ButtonEvent with button: %d\n", v.Button)
-			dev.ButtonEvents = append(dev.ButtonEvents, &ir_protocol.ButtonEvent{
-				Timestamp:  timestamppb.New(v.Timestamp),
-				ButtonCode: uint32(v.Button),
-				IsDown:     v.EventType&1 == 0,
-			})
-		case *xinputhandler.KeyEventData:
-			// fmt.Printf("KeyEvent with keycode: %d\n", v.KeyCode)
-			dev.KeyEvents = append(dev.KeyEvents, &ir_protocol.KeyEvent{
-				Timestamp: timestamppb.New(v.Timestamp),
-				KeyCode:   uint32(v.KeyCode),
-				IsDown:    v.EventType&1 == 0,
-			})
-		case *xinputhandler.MotionEvent:
-			// fmt.Printf("MotionEvent with axis position: %v\n", v.AxisPosition)
-			motion_event := &ir_protocol.MotionEvent{
-				Timestamp:     timestamppb.New(v.Timestamp),
-				AxisPositions: make(map[uint32]int32),
-			}
-			for axis, position := range v.AxisPosition {
-				motion_event.AxisPositions[axis] = position
-			}
-			dev.MotionEvents = append(dev.MotionEvents, motion_event)
+			switch v := event.(type) {
+			case *xinputhandler.ButtonEventData:
+				// fmt.Printf("ButtonEvent with button: %d\n", v.Button)
+				dev.ButtonEvents = append(dev.ButtonEvents, &ir_protocol.ButtonEvent{
+					Timestamp:  timestamppb.New(v.Timestamp),
+					ButtonCode: uint32(v.Button),
+					IsDown:     v.EventType&1 == 0,
+				})
+			case *xinputhandler.KeyEventData:
+				// fmt.Printf("KeyEvent with keycode: %d\n", v.KeyCode)
+				dev.KeyEvents = append(dev.KeyEvents, &ir_protocol.KeyEvent{
+					Timestamp: timestamppb.New(v.Timestamp),
+					KeyCode:   uint32(v.KeyCode),
+					IsDown:    v.EventType&1 == 0,
+				})
+			case *xinputhandler.MotionEvent:
+				// fmt.Printf("MotionEvent with axis position: %v\n", v.AxisPosition)
+				motion_event := &ir_protocol.MotionEvent{
+					Timestamp:     timestamppb.New(v.Timestamp),
+					AxisPositions: make(map[uint32]int32),
+				}
+				for axis, position := range v.AxisPosition {
+					motion_event.AxisPositions[axis] = position
+				}
+				dev.MotionEvents = append(dev.MotionEvents, motion_event)
 
-		default:
-			fmt.Printf("Unknown event type: %T\n", v)
+			default:
+				fmt.Printf("Unknown event type: %T\n", v)
+			}
 		}
 	}
 

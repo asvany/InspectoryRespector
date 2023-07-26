@@ -155,10 +155,10 @@ func EventLogNG(valid_devices []xinput.XDeviceInfo, quitChan chan bool, wg *sync
 				counter -= 1
 
 				fmt.Printf("Close EventMap for device %v , counter:%v\n", device.Name, counter)
-				// eventMap.Close()
-				// fmt.Printf("Closed EventMap for device %v\n", device.Name)
-				// xinput.XCloseDisplay(display)
-				// fmt.Printf("Closed display for device %v\n", device.Name)
+				eventMap.Close()
+				fmt.Printf("Closed EventMap for device %v\n", device.Name)
+				xinput.XCloseDisplay(display)
+				fmt.Printf("Closed display for device %v\n", device.Name)
 
 			}()
 

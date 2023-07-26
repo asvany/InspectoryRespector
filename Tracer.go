@@ -101,6 +101,7 @@ func main() {
 		Location: nil,
 		Out_dir:  out_dir,
 		Tmp_dir:  tmp_dir,
+		Enabled:  true,
 	}
 	fmt.Printf("out_dir:%v\n", out_dir)
 	fmt.Printf("tmp_dir:%v\n", tmp_dir)
