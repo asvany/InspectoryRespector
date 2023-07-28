@@ -18,8 +18,8 @@ import (
 	// "fyne.io/fyne/v2/widget"
 )
 
-var icon_file_enabled = "binary/icon_base_2.png"
-var icon_file_disabled = "binary/icon_base_2_bw.png"
+var icon_file_enabled = "binary/icon_base_2.ico"
+var icon_file_disabled = "binary/icon_base_2_bw.ico"
 
 // var image = trayhost.NewImageFromPath(icon_file)
 
